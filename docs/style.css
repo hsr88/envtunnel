@@ -283,6 +283,14 @@ body {
   border: 1px solid var(--border);
 }
 
+.demo-gif {
+  max-width: 480px;
+  width: 100%;
+  display: block;
+  margin: 0 auto;
+  border: 2px solid var(--border);
+}
+
 /* === SECTIONS === */
 .features,
 .ports,
