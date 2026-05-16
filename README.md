@@ -2,8 +2,7 @@
 
 > A free, local-first desktop tool that scans for active dev servers and generates instant QR codes - so you can open your localhost on any device in your network with one scan.
 
-![EnvTunnel Screenshot](screenshot.png)
-![EnvTunnel Active Ports](screenshot-2.png)
+![EnvTunnel Demo](demo.gif)
 
 ---
 
