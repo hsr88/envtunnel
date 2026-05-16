@@ -60,13 +60,8 @@ EnvTunnel scans these ports out of the box:
 
 You can also **add any custom port** via the in-app input.
 
-## 📸 Screenshots
 
-*Placeholder — replace with your own screenshots after generating the logo.*
-
-```
-[Main Window]      [QR Generated]      [System Tray]
-```
+---
 
 ## 🚀 Installation
 
