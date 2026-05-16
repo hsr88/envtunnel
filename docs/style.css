@@ -277,6 +277,12 @@ body {
   letter-spacing: 0.04em;
 }
 
+.showcase-img {
+  width: 100%;
+  display: block;
+  border: 1px solid var(--border);
+}
+
 /* === SECTIONS === */
 .features,
 .ports,
