@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EnvTunnel — Local Dev Server Scanner & QR Generator</title>
+  <meta name="description" content="EnvTunnel scans your localhost ports and generates instant QR codes to open them on any device in your network. 100% offline." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <div class="logo">
+        <div class="logo-dot"></div>
+        <span class="logo-text">ENVTUNNEL</span>
+      </div>
+      <nav class="nav">
+        <a href="#features">FEATURES</a>
+        <a href="#download">DOWNLOAD</a>
+        <a href="https://github.com/hsr88/envtunnel" target="_blank">GITHUB</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">[ LOCAL-FIRST / OFFLINE ]</div>
+      <h1 class="hero-title">
+        STOP TYPING<br />
+        <span class="hero-accent">192.168.X.X</span><br />
+        ON YOUR PHONE
+      </h1>
+      <p class="hero-desc">
+        EnvTunnel sits in your system tray, scans 16+ dev ports every 3 seconds,
+        and generates a big QR code the moment it detects an active server.
+        Scan it. Open it. Done.
+      </p>
+      <div class="hero-cta">
+        <a href="#download" class="btn btn-primary">DOWNLOAD FOR WINDOWS</a>
+        <a href="https://github.com/hsr88/envtunnel" target="_blank" class="btn btn-secondary">VIEW SOURCE</a>
+      </div>
+      <div class="hero-meta">
+        <span>v1.0.0</span>
+        <span class="sep">|</span>
+        <span>TAURI + REACT + RUST</span>
+        <span class="sep">|</span>
+        <span>OPEN SOURCE</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOT -->
+  <section class="showcase">
+    <div class="container">
+      <div class="showcase-frame">
+        <div class="showcase-bar">
+          <span class="showcase-dot red"></span>
+          <span class="showcase-dot yellow"></span>
+          <span class="showcase-dot green"></span>
+          <span class="showcase-title">EnvTunnel.exe</span>
+        </div>
+        <div class="showcase-body">
+          <div class="showcase-placeholder">
+            <span class="showcase-qrcode">
+              <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" fill="#0a0a0a"/>
+                <rect x="10" y="10" width="25" height="25" fill="#39ff14" fill-opacity="0.2"/>
+                <rect x="12" y="12" width="21" height="21" fill="#0a0a0a"/>
+                <rect x="16" y="16" width="13" height="13" fill="#39ff14"/>
+                <rect x="65" y="10" width="25" height="25" fill="#39ff14" fill-opacity="0.2"/>
+                <rect x="67" y="12" width="21" height="21" fill="#0a0a0a"/>
+                <rect x="71" y="16" width="13" height="13" fill="#39ff14"/>
+                <rect x="10" y="65" width="25" height="25" fill="#39ff14" fill-opacity="0.2"/>
+                <rect x="12" y="67" width="21" height="21" fill="#0a0a0a"/>
+                <rect x="16" y="71" width="13" height="13" fill="#39ff14"/>
+                <rect x="42" y="10" width="8" height="8" fill="#39ff14" fill-opacity="0.5"/>
+                <rect x="55" y="10" width="8" height="8" fill="#39ff14" fill-opacity="0.3"/>
+                <rect x="42" y="24" width="8" height="8" fill="#39ff14" fill-opacity="0.4"/>
+                <rect x="55" y="24" width="8" height="8" fill="#39ff14" fill-opacity="0.6"/>
+                <rect x="42" y="42" width="16" height="16" fill="#39ff14" fill-opacity="0.5"/>
+                <rect x="65" y="42" width="8" height="8" fill="#39ff14" fill-opacity="0.3"/>
+                <rect x="80" y="42" width="8" height="8" fill="#39ff14" fill-opacity="0.4"/>
+                <rect x="42" y="65" width="8" height="8" fill="#39ff14" fill-opacity="0.6"/>
+                <rect x="55" y="65" width="8" height="8" fill="#39ff14" fill-opacity="0.3"/>
+                <rect x="65" y="65" width="8" height="8" fill="#39ff14" fill-opacity="0.5"/>
+                <rect x="80" y="65" width="8" height="8" fill="#39ff14" fill-opacity="0.4"/>
+                <rect x="42" y="80" width="8" height="8" fill="#39ff14" fill-opacity="0.3"/>
+                <rect x="55" y="80" width="8" height="8" fill="#39ff14" fill-opacity="0.6"/>
+                <rect x="65" y="80" width="8" height="8" fill="#39ff14" fill-opacity="0.4"/>
+                <rect x="80" y="80" width="8" height="8" fill="#39ff14" fill-opacity="0.5"/>
+              </svg>
+            </span>
+            <div class="showcase-info">
+              <div class="showcase-status">
+                <span class="status-dot"></span>
+                ACTIVE: 2
+              </div>
+              <div class="showcase-url">http://192.168.1.15:4321</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="features">
+    <div class="container">
+      <h2 class="section-title">&gt; FEATURES</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="card-tag">01</div>
+          <h3>AUTO-SCAN</h3>
+          <p>Monitors 16+ popular dev ports every 3 seconds. Detects React, Vite, Astro, Next.js, Angular, Django, Flask and more instantly.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">02</div>
+          <h3>QR CODES</h3>
+          <p>Generates a big scannable QR code using your real local network IP. No typing, no clipboard juggling. Just scan and open.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">03</div>
+          <h3>FRAMEWORK DETECTION</h3>
+          <p>Recognizes Vite, Next.js, Astro, Nuxt, Gatsby, Angular, Django, Flask, Laravel, Rails and Express automatically.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">04</div>
+          <h3>TOAST ALERTS</h3>
+          <p>Get notified the moment a new dev server comes online. Never miss when your build finishes and the port goes live.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">05</div>
+          <h3>CUSTOM PORTS & PATHS</h3>
+          <p>Add any port manually. Append custom paths like <code>/admin</code> or <code>?debug=true</code> directly to the QR URL.</p>
+        </div>
+        <div class="card">
+          <div class="card-tag">06</div>
+          <h3>SYSTEM TRAY</h3>
+          <p>Minimizes to tray on close. Right-click for menu. Optional autostart with Windows. Stays out of your way until needed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTS -->
+  <section class="ports">
+    <div class="container">
+      <h2 class="section-title">&gt; SUPPORTED PORTS</h2>
+      <div class="ports-grid">
+        <span class="port">3000</span>
+        <span class="port">4321</span>
+        <span class="port">5173</span>
+        <span class="port">8080</span>
+        <span class="port">4200</span>
+        <span class="port">5000</span>
+        <span class="port">8000</span>
+        <span class="port">9000</span>
+        <span class="port">3333</span>
+        <span class="port">3030</span>
+        <span class="port">5500</span>
+        <span class="port">4000</span>
+        <span class="port">6000</span>
+        <span class="port">7000</span>
+        <span class="port">5001</span>
+        <span class="port">8001</span>
+        <span class="port active">+ ANY</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download" class="download">
+    <div class="container">
+      <h2 class="section-title">&gt; DOWNLOAD</h2>
+      <p class="download-desc">Windows 10/11 &mdash; 64-bit &mdash; No installation required for portable version</p>
+      <div class="download-grid">
+        <a class="download-card" href="https://github.com/hsr88/envtunnel/releases/latest/download/EnvTunnel_0.1.0_x64-setup.exe">
+          <div class="download-label">INSTALLER</div>
+          <div class="download-name">EnvTunnel_0.1.0_x64-setup.exe</div>
+          <div class="download-meta">~2 MB &mdash; Recommended</div>
+        </a>
+        <a class="download-card" href="https://github.com/hsr88/envtunnel/releases/latest/download/EnvTunnel_0.1.0_x64_en-US.msi">
+          <div class="download-label">MSI</div>
+          <div class="download-name">EnvTunnel_0.1.0_x64_en-US.msi</div>
+          <div class="download-meta">~3 MB &mdash; Enterprise / IT</div>
+        </a>
+        <a class="download-card secondary" href="https://github.com/hsr88/envtunnel/releases/latest">
+          <div class="download-label">PORTABLE</div>
+          <div class="download-name">app.exe</div>
+          <div class="download-meta">~9 MB &mdash; No install</div>
+        </a>
+      </div>
+      <div class="download-note">
+        Looking for macOS or Linux? <a href="https://github.com/hsr88/envtunnel#-installation" target="_blank">Build from source</a> &mdash; it's easy.
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">ENVTUNNEL</span>
+        <span class="footer-copy">Open source under MIT License</span>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/hsr88/envtunnel" target="_blank">GitHub</a>
+        <a href="https://github.com/hsr88/envtunnel/issues" target="_blank">Issues</a>
+        <a href="https://github.com/hsr88/envtunnel/releases" target="_blank">Releases</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
