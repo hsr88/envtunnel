@@ -69,7 +69,7 @@ function App() {
       for (const port of results) {
         if (port.active && !prevActive.has(port.port)) {
           newFresh.add(port.port)
-          addToast(`PORT ${port.port} ACTIVE${port.framework ? ` — ${port.framework}` : ''}`)
+          addToast(`PORT ${port.port} ACTIVE${port.framework ? ` | ${port.framework}` : ''}`)
         }
       }
       if (newFresh.size > 0) {
@@ -282,7 +282,7 @@ function App() {
             </div>
           ) : (
             <div className="text-[10px] text-text-muted py-1">
-              NO ACTIVE PORTS — RUN DEV SERVER
+              NO ACTIVE PORTS | RUN DEV SERVER
             </div>
           )}
         </section>
