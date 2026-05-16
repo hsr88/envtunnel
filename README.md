@@ -8,7 +8,7 @@
 
 ## 🔥 What is it?
 
-**EnvTunnel** is a Windows desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. It sits in your system tray, silently monitors popular development ports, and the moment it detects an active server — it generates a large QR code using your real local network IP (e.g. `192.168.1.15`).
+**EnvTunnel** is a Windows desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. It sits in your system tray, silently monitors popular development ports, and the moment it detects an active server it generates a large QR code using your real local network IP (e.g. `192.168.1.15`).
 
 No cloud. No accounts. No internet required. 100% offline.
 
@@ -32,7 +32,7 @@ No cloud. No accounts. No internet required. 100% offline.
 | 🔗 **Custom Paths** | Append `/admin`, `?debug=true` or any path to the QR URL |
 | 📋 **Copy URL** | One-click copy of the full address to clipboard |
 | 💾 **Save QR** | Export QR code as PNG image |
-| 🖥️ **System Tray** | Minimizes to tray — click to restore, right-click to quit |
+| 🖥️ **System Tray** | Minimizes to tray. Click to restore, right-click to quit |
 | 🚀 **Autostart** | Optional launch with Windows |
 
 ## 📡 Supported Ports (Default)
@@ -188,11 +188,11 @@ Contributions are welcome! This is an open-source project meant to help develope
 
 ## 📄 License
 
-MIT License — feel free to use, modify, and distribute.
+MIT License. Feel free to use, modify, and distribute.
 
 ---
 
 <p align="center">
   Built with 💚 and neon green pixels.<br>
-  <strong>EnvTunnel</strong> — stop typing IP addresses on your phone.
+  <strong>EnvTunnel</strong>. Stop typing IP addresses on your phone.
 </p>
