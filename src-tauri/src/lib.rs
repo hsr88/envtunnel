@@ -118,10 +118,19 @@ pub fn run() {
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None::<Vec<&str>>,
+            Some(vec!["--autostart"]),
         ))
         .invoke_handler(tauri::generate_handler![get_local_ip, scan_ports])
         .setup(|app| {
+            // Hide window on autostart (starts minimized to tray)
+            let args: Vec<String> = std::env::args().collect();
+            let is_autostart = args.contains(&"--autostart".to_string());
+            if is_autostart {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
+
             let show_i = tauri::menu::MenuItem::with_id(
                 app,
                 "show",
