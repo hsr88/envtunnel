@@ -7,6 +7,8 @@ use tauri::Manager;
 pub struct PortStatus {
     pub port: u16,
     pub active: bool,
+    #[serde(rename = "networkAccessible")]
+    pub network_accessible: bool,
     pub url: String,
     pub framework: Option<String>,
 }
@@ -82,6 +84,7 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
                 results.push(PortStatus {
                     port,
                     active: false,
+                    network_accessible: false,
                     url: format!("http://{}:{}", ip, port),
                     framework: None,
                 });
@@ -108,9 +111,29 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
             None
         };
 
+        let network_addr: SocketAddr = match format!("{}:{}", ip, port).parse() {
+            Ok(a) => a,
+            Err(_) => {
+                results.push(PortStatus {
+                    port,
+                    active: is_active,
+                    network_accessible: false,
+                    url: format!("http://{}:{}", ip, port),
+                    framework,
+                });
+                continue;
+            }
+        };
+        let is_network_accessible = if is_active {
+            TcpStream::connect_timeout(&network_addr, timeout).is_ok()
+        } else {
+            false
+        };
+
         results.push(PortStatus {
             port,
             active: is_active,
+            network_accessible: is_network_accessible,
             url: format!("http://{}:{}", ip, port),
             framework,
         });

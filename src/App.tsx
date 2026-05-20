@@ -6,6 +6,7 @@ import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart'
 interface PortStatus {
   port: number
   active: boolean
+  networkAccessible: boolean
   url: string
   framework: string | null
 }
@@ -272,6 +273,9 @@ function App() {
                     {freshPorts.has(port.port) && (
                       <div className="w-1.5 h-1.5 bg-neon-yellow animate-pulse" title="Fresh" />
                     )}
+                    {!port.networkAccessible && (
+                      <span className="text-[8px] font-bold text-neon-red border border-neon-red px-0.5">LOCAL</span>
+                    )}
                     <div className="w-1.5 h-1.5 bg-neon-green animate-pulse-glow" />
                   </div>
                   {port.framework && (
@@ -296,6 +300,15 @@ function App() {
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
               <span className="text-text-muted text-[10px] animate-pulse">[ INIT... ]</span>
+            </div>
+          ) : selectedPort && !selectedPort.networkAccessible ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 min-h-0">
+              <div className="w-12 h-12 border border-neon-red flex items-center justify-center">
+                <span className="text-neon-red text-lg">!</span>
+              </div>
+              <span className="text-neon-red text-[10px] font-bold">LOCAL ONLY</span>
+              <span className="text-text-muted text-[9px]">RUN DEV SERVER WITH --HOST</span>
+              <span className="text-text-muted text-[9px]">TO ACCESS FROM NETWORK</span>
             </div>
           ) : selectedPort ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2 min-h-0">
