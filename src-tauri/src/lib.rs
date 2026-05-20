@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::net::{SocketAddr, TcpStream};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use tauri::Manager;
 
@@ -60,6 +60,7 @@ async fn detect_framework(url: &str) -> Option<String> {
 
 #[tauri::command]
 async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus>, String> {
+    eprintln!("[scan_ports] start ip={} custom_ports={:?}", ip, custom_ports);
     let mut ports_to_scan = vec![
         3000, 4321, 5173, 8080, 4200, 5000, 8000, 9000,
         3333, 3030, 5500, 4000, 6000, 7000, 5001, 8001,
@@ -75,7 +76,7 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
     let mut results = Vec::new();
 
     for port in ports_to_scan {
-        let addr: SocketAddr = match format!("127.0.0.1:{}", port).parse() {
+        let ipv4: SocketAddr = match format!("127.0.0.1:{}", port).parse() {
             Ok(a) => a,
             Err(e) => {
                 results.push(PortStatus {
@@ -88,15 +89,21 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
                 continue;
             }
         };
+        let ipv6: Option<SocketAddr> = format!("[::1]:{}", port).parse().ok();
 
-        let is_active = match TcpStream::connect_timeout(&addr, timeout) {
-            Ok(_) => true,
-            Err(_) => false,
-        };
+        let mut is_active = TcpStream::connect_timeout(&ipv4, timeout).is_ok();
+        if !is_active {
+            if let Some(addr6) = ipv6 {
+                is_active = TcpStream::connect_timeout(&addr6, timeout).is_ok();
+            }
+        }
 
         let framework = if is_active {
-            let url = format!("http://127.0.0.1:{}", port);
-            detect_framework(&url).await
+            let mut fw = detect_framework(&format!("http://127.0.0.1:{}", port)).await;
+            if fw.is_none() && ipv6.is_some() {
+                fw = detect_framework(&format!("http://[::1]:{}", port)).await;
+            }
+            fw
         } else {
             None
         };
@@ -109,6 +116,7 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
         });
     }
 
+    eprintln!("[scan_ports] done, found {} active ports", results.iter().filter(|r| r.active).count());
     Ok(results)
 }
 
