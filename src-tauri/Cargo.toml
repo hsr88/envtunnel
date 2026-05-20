@@ -24,4 +24,4 @@ tauri-plugin-log = "2"
 local-ip-address = "0.6"
 tokio = { version = "1", features = ["net", "time", "rt"] }
 tauri-plugin-autostart = "2.5.1"
-reqwest = { version = "0.13.3", features = ["json"] }
+reqwest = { version = "0.13.3", default-features = false, features = ["json", "native-tls"] }
