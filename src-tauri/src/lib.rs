@@ -125,9 +125,11 @@ pub fn run() {
             // Hide window on autostart (starts minimized to tray)
             let args: Vec<String> = std::env::args().collect();
             let is_autostart = args.contains(&"--autostart".to_string());
-            if is_autostart {
-                if let Some(window) = app.get_webview_window("main") {
+            if let Some(window) = app.get_webview_window("main") {
+                if is_autostart {
                     let _ = window.hide();
+                } else {
+                    let _ = window.show();
                 }
             }
 

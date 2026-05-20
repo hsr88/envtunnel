@@ -21,7 +21,7 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "visible": true
+        "visible": false
       }
     ],
 
