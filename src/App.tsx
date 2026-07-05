@@ -116,8 +116,13 @@ function App() {
 
   useEffect(() => {
     if (!ip) return
-    const interval = setInterval(() => scanPorts(ip), 3000)
-    return () => clearInterval(interval)
+    let timeoutId: number
+    const tick = async () => {
+      await scanPorts(ip)
+      timeoutId = window.setTimeout(tick, 3000)
+    }
+    timeoutId = window.setTimeout(tick, 3000)
+    return () => clearTimeout(timeoutId)
   }, [ip, scanPorts])
 
   useEffect(() => {

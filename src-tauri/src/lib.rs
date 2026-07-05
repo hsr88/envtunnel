@@ -74,69 +74,72 @@ async fn scan_ports(ip: String, custom_ports: Vec<u16>) -> Result<Vec<PortStatus
     }
     ports_to_scan.sort();
 
-    let timeout = Duration::from_millis(400);
-    let mut results = Vec::new();
+    let mut tasks = Vec::new();
 
     for port in ports_to_scan {
-        let ipv4: SocketAddr = match format!("127.0.0.1:{}", port).parse() {
-            Ok(a) => a,
-            Err(e) => {
-                results.push(PortStatus {
-                    port,
-                    active: false,
-                    network_accessible: false,
-                    url: format!("http://{}:{}", ip, port),
-                    framework: None,
-                });
-                eprintln!("Parse error for port {}: {}", port, e);
-                continue;
-            }
-        };
-        let ipv6: Option<SocketAddr> = format!("[::1]:{}", port).parse().ok();
+        let ip_clone = ip.clone();
+        tasks.push(tokio::spawn(async move {
+            let timeout_dur = Duration::from_millis(400);
 
-        let mut is_active = TcpStream::connect_timeout(&ipv4, timeout).is_ok();
-        if !is_active {
-            if let Some(addr6) = ipv6 {
-                is_active = TcpStream::connect_timeout(&addr6, timeout).is_ok();
+            let ipv4: Option<SocketAddr> = format!("127.0.0.1:{}", port).parse().ok();
+            let ipv6: Option<SocketAddr> = format!("[::1]:{}", port).parse().ok();
+            let network_addr: Option<SocketAddr> = format!("{}:{}", ip_clone, port).parse().ok();
+
+            let mut is_active = false;
+            
+            if let Some(addr4) = ipv4 {
+                is_active = tokio::time::timeout(timeout_dur, tokio::net::TcpStream::connect(&addr4))
+                    .await
+                    .is_ok_and(|r| r.is_ok());
             }
+
+            if !is_active {
+                if let Some(addr6) = ipv6 {
+                    is_active = tokio::time::timeout(timeout_dur, tokio::net::TcpStream::connect(&addr6))
+                        .await
+                        .is_ok_and(|r| r.is_ok());
+                }
+            }
+
+            let mut is_network_accessible = false;
+            if let Some(net_addr) = network_addr {
+                is_network_accessible = tokio::time::timeout(timeout_dur, tokio::net::TcpStream::connect(&net_addr))
+                    .await
+                    .is_ok_and(|r| r.is_ok());
+            }
+
+            if !is_active && is_network_accessible {
+                is_active = true;
+            }
+
+            let framework = if is_active {
+                let mut fw = detect_framework(&format!("http://127.0.0.1:{}", port)).await;
+                if fw.is_none() && ipv6.is_some() {
+                    fw = detect_framework(&format!("http://[::1]:{}", port)).await;
+                }
+                if fw.is_none() {
+                    fw = detect_framework(&format!("http://{}:{}", ip_clone, port)).await;
+                }
+                fw
+            } else {
+                None
+            };
+
+            PortStatus {
+                port,
+                active: is_active,
+                network_accessible: is_network_accessible,
+                url: format!("http://{}:{}", ip_clone, port),
+                framework,
+            }
+        }));
+    }
+
+    let mut results = Vec::new();
+    for task in tasks {
+        if let Ok(status) = task.await {
+            results.push(status);
         }
-
-        let framework = if is_active {
-            let mut fw = detect_framework(&format!("http://127.0.0.1:{}", port)).await;
-            if fw.is_none() && ipv6.is_some() {
-                fw = detect_framework(&format!("http://[::1]:{}", port)).await;
-            }
-            fw
-        } else {
-            None
-        };
-
-        let network_addr: SocketAddr = match format!("{}:{}", ip, port).parse() {
-            Ok(a) => a,
-            Err(_) => {
-                results.push(PortStatus {
-                    port,
-                    active: is_active,
-                    network_accessible: false,
-                    url: format!("http://{}:{}", ip, port),
-                    framework,
-                });
-                continue;
-            }
-        };
-        let is_network_accessible = if is_active {
-            TcpStream::connect_timeout(&network_addr, timeout).is_ok()
-        } else {
-            false
-        };
-
-        results.push(PortStatus {
-            port,
-            active: is_active,
-            network_accessible: is_network_accessible,
-            url: format!("http://{}:{}", ip, port),
-            framework,
-        });
     }
 
     eprintln!("[scan_ports] done, found {} active ports", results.iter().filter(|r| r.active).count());
