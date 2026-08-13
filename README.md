@@ -63,6 +63,7 @@ You can also **add any custom port** via the in-app input.
 
 ---
 
+<a id="installation"></a>
 ## 🚀 Installation
 
 ### For Users (Just want the .exe)
