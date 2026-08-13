@@ -28,3 +28,6 @@ src-tauri/target/
 src-tauri/gen/
 .kimi/
 AGENTS.md
+
+# Built installers — publish via GitHub Releases, not git
+release/

@@ -16,6 +16,31 @@ interface Toast {
   message: string
 }
 
+const STORAGE_PORTS = 'envtunnel-custom-ports'
+const STORAGE_PATH = 'envtunnel-custom-path'
+
+function readStoredCustomPorts(): number[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_PORTS)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return [...new Set(parsed.filter((p): p is number =>
+      typeof p === 'number' && Number.isInteger(p) && p > 0 && p < 65536
+    ))]
+  } catch {
+    return []
+  }
+}
+
+function readStoredCustomPath(): string {
+  try {
+    return localStorage.getItem(STORAGE_PATH) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 function App() {
   const [ip, setIp] = useState<string | null>(null)
   const [ports, setPorts] = useState<PortStatus[]>([])
@@ -28,22 +53,25 @@ function App() {
   const [autostartLoading, setAutostartLoading] = useState(true)
 
   const [customPortInput, setCustomPortInput] = useState('')
-  const [customPorts, setCustomPorts] = useState<number[]>([])
-  const [customPath, setCustomPath] = useState('')
+  const [customPorts, setCustomPorts] = useState<number[]>(readStoredCustomPorts)
+  const [customPath, setCustomPath] = useState(readStoredCustomPath)
 
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastIdRef = useRef(0)
   const prevPortsRef = useRef<PortStatus[]>([])
+  const selectedPortRef = useRef<PortStatus | null>(null)
   const [freshPorts, setFreshPorts] = useState<Set<number>>(new Set())
   const qrWrapperRef = useRef<HTMLDivElement>(null)
 
-  const addToast = (message: string) => {
+  selectedPortRef.current = selectedPort
+
+  const addToast = useCallback((message: string) => {
     const id = ++toastIdRef.current
     setToasts(prev => [...prev, { id, message }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, 4000)
-  }
+  }, [])
 
   const fetchIp = useCallback(async () => {
     try {
@@ -85,11 +113,13 @@ function App() {
       }
       prevPortsRef.current = results
 
-      const activePorts = results.filter((p: PortStatus) => p.active)
+      const activePorts = results.filter(p => p.active)
+      const currentSelected = selectedPortRef.current
       if (activePorts.length > 0) {
-        if (!selectedPort || !results.find((p: PortStatus) => p.port === selectedPort.port && p.active)) {
-          setSelectedPort(activePorts[0])
-        }
+        const stillActive = currentSelected
+          ? results.find(p => p.port === currentSelected.port && p.active)
+          : undefined
+        setSelectedPort(stillActive ?? activePorts[0])
       } else {
         setSelectedPort(null)
       }
@@ -102,28 +132,42 @@ function App() {
       setScanning(false)
       setLoading(false)
     }
-  }, [customPorts, selectedPort])
+  }, [customPorts, addToast])
 
   useEffect(() => {
-    let isMounted = true
-    const init = async () => {
-      const localIp = await fetchIp()
-      if (localIp && isMounted) await scanPorts(localIp)
-    }
-    init()
-    return () => { isMounted = false }
-  }, [fetchIp, scanPorts])
+    fetchIp()
+  }, [fetchIp])
 
   useEffect(() => {
     if (!ip) return
+    let cancelled = false
     let timeoutId: number
     const tick = async () => {
       await scanPorts(ip)
-      timeoutId = window.setTimeout(tick, 3000)
+      if (!cancelled) timeoutId = window.setTimeout(tick, 3000)
     }
-    timeoutId = window.setTimeout(tick, 3000)
-    return () => clearTimeout(timeoutId)
+    tick()
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
   }, [ip, scanPorts])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PORTS, JSON.stringify(customPorts))
+    } catch {
+      // storage may be unavailable
+    }
+  }, [customPorts])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PATH, customPath)
+    } catch {
+      // storage may be unavailable
+    }
+  }, [customPath])
 
   useEffect(() => {
     const checkAutostart = async () => {
@@ -214,7 +258,7 @@ function App() {
               ENVTUNNEL
             </h1>
             <span className="text-[10px] text-text-muted border border-obsidian-border px-1">
-              v1.0
+              v1.0.0
             </span>
           </div>
           <div className="flex items-center gap-3">

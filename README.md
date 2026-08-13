@@ -67,7 +67,7 @@ You can also **add any custom port** via the in-app input.
 
 ### For Users (Just want the .exe)
 
-1. Download `EnvTunnel_0.1.0_x64-setup.exe` from [Releases](../../releases)
+1. Download the Windows installer from [Releases](../../releases)
 2. Run the installer
 3. Launch EnvTunnel from Start Menu or Desktop
 
@@ -83,7 +83,7 @@ You can also **add any custom port** via the in-app input.
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/envtunnel.git
+git clone https://github.com/hsr88/envtunnel.git
 cd envtunnel
 
 # Install dependencies
@@ -93,7 +93,7 @@ npm install
 npm run tauri build
 
 # The .exe will be at:
-# src-tauri/target/release/app.exe
+# src-tauri/target/release/envtunnel.exe
 ```
 
 > **Note for Windows builders:** If you get `LNK1181: cannot open input file legacy_stdio_definitions.lib`, add this to your `LIB` environment variable:

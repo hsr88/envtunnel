@@ -1,10 +1,10 @@
 [package]
 name = "envtunnel"
-version = "0.1.0"
+version = "1.0.0"
 description = "EnvTunnel - Local Development Port Scanner with QR Codes"
 authors = ["envtunnel"]
 license = "MIT"
-repository = ""
+repository = "https://github.com/hsr88/envtunnel"
 edition = "2021"
 rust-version = "1.77.2"
 

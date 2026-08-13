@@ -13,11 +13,114 @@ pub struct PortStatus {
     pub framework: Option<String>,
 }
 
+fn is_skipped_iface(name: &str) -> bool {
+    let n = name.to_lowercase();
+    const SKIP: &[&str] = &[
+        "vpn",
+        "tun",
+        "tap",
+        "wsl",
+        "vethernet",
+        "docker",
+        "hyper-v",
+        "vbox",
+        "vmware",
+        "virtual",
+        "loopback",
+        "isatap",
+        "teredo",
+        "bluetooth",
+        "nordlynx",
+        "tailscale",
+        "wg0",
+        "wireguard",
+        "hamachi",
+        "zerotier",
+        "br-",
+    ];
+    SKIP.iter().any(|s| n.contains(s))
+}
+
+/// Prefer typical LAN ranges (192.168, then 10.x, then 172.16-31) and skip
+/// VPN/WSL/CGNAT addresses so QR codes point at an IP phones can actually reach.
+fn lan_priority(v4: std::net::Ipv4Addr) -> Option<u8> {
+    if v4.is_loopback() || v4.is_unspecified() || v4.is_link_local() || v4.is_multicast() {
+        return None;
+    }
+    let o = v4.octets();
+    // CGNAT / Tailscale 100.64.0.0/10
+    if o[0] == 100 && (64..=127).contains(&o[1]) {
+        return None;
+    }
+    if o[0] == 192 && o[1] == 168 {
+        Some(0)
+    } else if o[0] == 10 {
+        Some(1)
+    } else if o[0] == 172 && (16..=31).contains(&o[1]) {
+        Some(2)
+    } else {
+        None
+    }
+}
+
 #[tauri::command]
 fn get_local_ip() -> Result<String, String> {
+    if let Ok(ifaces) = local_ip_address::list_afinet_netifas() {
+        let mut best: Option<(u8, String)> = None;
+        for (name, ip) in ifaces {
+            if is_skipped_iface(&name) {
+                continue;
+            }
+            let std::net::IpAddr::V4(v4) = ip else {
+                continue;
+            };
+            let Some(prio) = lan_priority(v4) else {
+                continue;
+            };
+            match &best {
+                None => best = Some((prio, v4.to_string())),
+                Some((best_prio, _)) if prio < *best_prio => {
+                    best = Some((prio, v4.to_string()));
+                }
+                _ => {}
+            }
+        }
+        if let Some((_, ip)) = best {
+            return Ok(ip);
+        }
+    }
+
     match local_ip_address::local_ip() {
         Ok(ip) => Ok(ip.to_string()),
         Err(e) => Err(format!("Failed to get local IP: {}", e)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::Ipv4Addr;
+
+    #[test]
+    fn lan_priority_prefers_rfc1918() {
+        assert_eq!(lan_priority(Ipv4Addr::new(192, 168, 1, 15)), Some(0));
+        assert_eq!(lan_priority(Ipv4Addr::new(10, 0, 0, 2)), Some(1));
+        assert_eq!(lan_priority(Ipv4Addr::new(172, 16, 0, 1)), Some(2));
+        assert_eq!(lan_priority(Ipv4Addr::new(100, 64, 0, 1)), None);
+        assert_eq!(lan_priority(Ipv4Addr::new(8, 8, 8, 8)), None);
+        assert_eq!(lan_priority(Ipv4Addr::LOCALHOST), None);
+        assert_eq!(lan_priority(Ipv4Addr::new(169, 254, 1, 1)), None);
+    }
+
+    #[test]
+    fn skips_virtual_ifaces() {
+        assert!(is_skipped_iface("vEthernet (WSL)"));
+        assert!(is_skipped_iface("NordLynx"));
+        assert!(is_skipped_iface("Tailscale"));
+        assert!(is_skipped_iface("Docker Bridge"));
+        assert!(!is_skipped_iface("Wi-Fi"));
+        assert!(!is_skipped_iface("Ethernet"));
+        assert!(!is_skipped_iface("en0"));
     }
 }
 
