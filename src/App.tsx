@@ -63,7 +63,9 @@ function App() {
   const [freshPorts, setFreshPorts] = useState<Set<number>>(new Set())
   const qrWrapperRef = useRef<HTMLDivElement>(null)
 
-  selectedPortRef.current = selectedPort
+  useEffect(() => {
+    selectedPortRef.current = selectedPort
+  }, [selectedPort])
 
   const addToast = useCallback((message: string) => {
     const id = ++toastIdRef.current
@@ -79,7 +81,7 @@ function App() {
       setIp(localIp)
       setError(null)
       return localIp
-    } catch (err) {
+    } catch {
       setError('ERROR: Failed to retrieve local IP')
       setLoading(false)
       return null
@@ -135,23 +137,28 @@ function App() {
   }, [customPorts, addToast])
 
   useEffect(() => {
-    fetchIp()
-  }, [fetchIp])
-
-  useEffect(() => {
-    if (!ip) return
     let cancelled = false
     let timeoutId: number
-    const tick = async () => {
-      await scanPorts(ip)
-      if (!cancelled) timeoutId = window.setTimeout(tick, 3000)
+
+    const tick = async (targetIp: string) => {
+      await scanPorts(targetIp)
+      if (!cancelled) {
+        timeoutId = window.setTimeout(() => tick(targetIp), 3000)
+      }
     }
-    tick()
+
+    const start = async () => {
+      const localIp = ip ?? await fetchIp()
+      if (cancelled || !localIp) return
+      await tick(localIp)
+    }
+
+    start()
     return () => {
       cancelled = true
       clearTimeout(timeoutId)
     }
-  }, [ip, scanPorts])
+  }, [ip, scanPorts, fetchIp])
 
   useEffect(() => {
     try {
