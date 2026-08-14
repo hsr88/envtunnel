@@ -8,9 +8,9 @@
 
 ## 🔥 What is it?
 
-**EnvTunnel** is a Windows desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. It sits in your system tray, silently monitors popular development ports, and the moment it detects an active server it generates a large QR code using your real local network IP (e.g. `192.168.1.15`).
+**EnvTunnel** is a desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. It sits in your system tray, silently monitors popular development ports, and the moment it detects an active server it generates a large QR code using your real local network IP (e.g. `192.168.1.15`).
 
-No cloud. No accounts. No internet required. 100% offline.
+Windows, macOS, and Linux. No cloud. No accounts. No internet required. 100% offline.
 
 ## 🎯 Who is it for?
 
@@ -26,14 +26,16 @@ No cloud. No accounts. No internet required. 100% offline.
 | 🔍 **Auto-scan** | Checks 16+ popular dev ports every 3 seconds |
 | 📱 **QR Codes** | Big, scannable QR generated instantly for any active port |
 | 🧠 **Framework Detection** | Recognizes Vite, Next.js, Astro, Angular, Nuxt, Gatsby, Django, Flask, Laravel, Rails, Express |
-| 🔔 **Toast Notifications** | Get notified when a new dev server comes online |
+| 🔔 **Notifications** | In-app toast plus a native OS notification when a new server comes online (works from the tray) |
 | ⚡ **Live Reload Indicator** | Orange pulse shows which port just became active |
+| 🌐 **Interface picker** | Click the IP to switch Wi-Fi / Ethernet / VPN if the QR used the wrong adapter |
 | ➕ **Custom Ports** | Add any port manually (e.g. `6969`) |
 | 🔗 **Custom Paths** | Append `/admin`, `?debug=true` or any path to the QR URL |
 | 📋 **Copy URL** | One-click copy of the full address to clipboard |
 | 💾 **Save QR** | Export QR code as PNG image |
+| 🌍 **Open in browser** | Open the same URL on this PC to sanity-check it |
 | 🖥️ **System Tray** | Minimizes to tray. Click to restore, right-click to quit |
-| 🚀 **Autostart** | Optional launch with Windows |
+| 🚀 **Autostart** | Optional launch on login |
 
 ## 📡 Supported Ports (Default)
 
@@ -66,11 +68,11 @@ You can also **add any custom port** via the in-app input.
 <a id="installation"></a>
 ## 🚀 Installation
 
-### For Users (Just want the .exe)
+### For Users
 
-1. Download the Windows installer from [Releases](../../releases)
-2. Run the installer
-3. Launch EnvTunnel from Start Menu or Desktop
+1. Download the installer for your OS from [Releases](../../releases)
+2. Run it (Windows setup/MSI, macOS `.dmg`, Linux AppImage/`.deb`)
+3. Launch EnvTunnel from the Start Menu, Applications, or your desktop
 
 ### For Developers (Build from source)
 
@@ -78,7 +80,9 @@ You can also **add any custom port** via the in-app input.
 
 - [Node.js](https://nodejs.org/) 18+
 - [Rust](https://rustup.rs/) 1.77+
-- Windows with Visual Studio Build Tools (for `legacy_stdio_definitions.lib`)
+- Windows: Visual Studio Build Tools (for `legacy_stdio_definitions.lib`)
+- macOS: Xcode Command Line Tools
+- Linux: WebKitGTK 4.1 and related Tauri system packages
 
 **Build steps:**
 
@@ -93,8 +97,10 @@ npm install
 # Build frontend + Tauri (production)
 npm run tauri build
 
-# The .exe will be at:
-# src-tauri/target/release/envtunnel.exe
+# The binary will be at:
+# src-tauri/target/release/envtunnel.exe          (Windows)
+# src-tauri/target/release/envtunnel              (macOS / Linux)
+# plus installers under src-tauri/target/release/bundle/
 ```
 
 > **Note for Windows builders:** If you get `LNK1181: cannot open input file legacy_stdio_definitions.lib`, add this to your `LIB` environment variable:
@@ -135,6 +141,8 @@ Open your camera app and scan the QR code. Your phone browser opens the local UR
 
 - **Custom Path**: Type `/admin` in the Custom section to generate `http://192.168.1.15:3000/admin`
 - **Save QR**: Click "SAVE QR" to download the code as a PNG
+- **Open**: Click "OPEN" to load the same URL in your desktop browser
+- **Pick IP**: Click the IP if the QR used a VPN/WSL adapter instead of Wi-Fi
 - **Tray Mode**: Clicking **X** minimizes to system tray. Right-click the tray icon to fully quit.
 
 ## 🛠️ Tech Stack
@@ -168,6 +176,10 @@ EnvTunnel is a **local-first** desktop app. It works completely offline:
    - Keeps the app running in the background
    - Prevents accidental close (hides instead)
 
+## 🗺️ Roadmap
+
+Planned work lives in [ROADMAP.md](ROADMAP.md): process names, extra default ports, pin a port, HTTPS QR, `--host` copy, path presets, optional tunnels, global hotkey.
+
 ## 🤝 Contributing
 
 Contributions are welcome! This is an open-source project meant to help developers.
@@ -180,12 +192,7 @@ Contributions are welcome! This is an open-source project meant to help develope
 
 ### Ideas for contributions
 
-- Add more framework detection patterns
-- Support for macOS / Linux builds
-- Dark/Light theme toggle
-- ngrok / Cloudflare Tunnel integration
-- Network device scanner
-- QR code style customization
+See [ROADMAP.md](ROADMAP.md). Small, focused PRs are preferred.
 
 ## 📄 License
 

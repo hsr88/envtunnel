@@ -1,6 +1,6 @@
 [package]
 name = "envtunnel"
-version = "1.0.1"
+version = "1.1.0"
 description = "EnvTunnel - Local Development Port Scanner with QR Codes"
 authors = ["envtunnel"]
 license = "MIT"
@@ -24,4 +24,6 @@ tauri-plugin-log = "2"
 local-ip-address = "0.6"
 tokio = { version = "1", features = ["net", "time", "rt"] }
 tauri-plugin-autostart = "2.5.1"
+tauri-plugin-notification = "2"
+open = "5"
 reqwest = { version = "0.13.3", default-features = false, features = ["json", "native-tls"] }

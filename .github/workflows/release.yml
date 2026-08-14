@@ -10,9 +10,33 @@ permissions:
 
 jobs:
   publish-tauri:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest
+            args: "--target x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
 
       - uses: actions/setup-node@v4
         with:
@@ -20,10 +44,13 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          key: ${{ matrix.platform }}-${{ matrix.args }}
 
       - run: npm ci
 
@@ -34,19 +61,22 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "EnvTunnel ${{ github.ref_name }}"
           releaseBody: |
-            Windows installers for EnvTunnel.
+            EnvTunnel installers for Windows, macOS, and Linux.
 
-            - **NSIS setup** — recommended
-            - **MSI** — enterprise / IT
-            - **EnvTunnel.exe** — portable, no install
+            - **Windows:** NSIS setup (recommended), MSI, portable `.exe`
+            - **macOS:** `.dmg` for Apple Silicon and Intel
+            - **Linux:** AppImage and `.deb`
           releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}
 
-      - name: Upload portable exe
+      - name: Upload portable Windows exe
+        if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: Copy-Item src-tauri/target/release/envtunnel.exe EnvTunnel.exe
 
       - uses: softprops/action-gh-release@v2
+        if: matrix.platform == 'windows-latest'
         with:
           tag_name: ${{ github.ref_name }}
           files: EnvTunnel.exe
