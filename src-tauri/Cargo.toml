@@ -1,6 +1,6 @@
 [package]
 name = "envtunnel"
-version = "1.0.0"
+version = "1.0.1"
 description = "EnvTunnel - Local Development Port Scanner with QR Codes"
 authors = ["envtunnel"]
 license = "MIT"

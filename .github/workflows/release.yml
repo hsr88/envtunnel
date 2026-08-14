@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tauri:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "EnvTunnel ${{ github.ref_name }}"
+          releaseBody: |
+            Windows installers for EnvTunnel.
+
+            - **NSIS setup** — recommended
+            - **MSI** — enterprise / IT
+            - **EnvTunnel.exe** — portable, no install
+          releaseDraft: false
+          prerelease: false
+
+      - name: Upload portable exe
+        shell: pwsh
+        run: Copy-Item src-tauri/target/release/envtunnel.exe EnvTunnel.exe
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: EnvTunnel.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
