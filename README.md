@@ -1,6 +1,6 @@
 # EnvTunnel
 
-> A free, local-first desktop tool that scans for active dev servers and generates instant QR codes - so you can open your localhost on any device in your network with one scan.
+> A free, local-first desktop app for **Windows, macOS, and Linux**. It scans for active dev servers and generates instant QR codes - so you can open your localhost on any device in your network with one scan.
 
 <img src="demo.gif" alt="EnvTunnel Demo" width="480">
 

@@ -1,6 +1,6 @@
 {
   "name": "envtunnel",
-  "private": true,
+  "description": "Local-first desktop app for Windows, macOS, and Linux. Scan dev ports, get a QR code, open localhost on your phone.",
   "version": "1.1.0",
   "type": "module",
   "scripts": {
