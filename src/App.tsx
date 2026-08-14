@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { QRCodeCanvas } from 'qrcode.react'
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart'
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from '@tauri-apps/plugin-notification'
 
 interface PortStatus {
   port: number
@@ -11,6 +16,12 @@ interface PortStatus {
   framework: string | null
 }
 
+interface NetworkIface {
+  name: string
+  ip: string
+  recommended: boolean
+}
+
 interface Toast {
   id: number
   message: string
@@ -18,6 +29,7 @@ interface Toast {
 
 const STORAGE_PORTS = 'envtunnel-custom-ports'
 const STORAGE_PATH = 'envtunnel-custom-path'
+const STORAGE_IP = 'envtunnel-selected-ip'
 
 function readStoredCustomPorts(): number[] {
   try {
@@ -41,8 +53,46 @@ function readStoredCustomPath(): string {
   }
 }
 
+function readStoredIp(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_IP)
+  } catch {
+    return null
+  }
+}
+
+function persistIp(ip: string) {
+  try {
+    localStorage.setItem(STORAGE_IP, ip)
+  } catch {
+    // storage may be unavailable
+  }
+}
+
+function appendPath(base: string, customPath: string) {
+  if (!customPath) return base
+  const cleanPath = customPath.startsWith('/') ? customPath : '/' + customPath
+  return base.replace(/\/$/, '') + cleanPath
+}
+
+async function notifyNative(message: string) {
+  try {
+    let granted = await isPermissionGranted()
+    if (!granted) {
+      granted = (await requestPermission()) === 'granted'
+    }
+    if (granted) {
+      sendNotification({ title: 'EnvTunnel', body: message })
+    }
+  } catch {
+    // notifications are optional
+  }
+}
+
 function App() {
   const [ip, setIp] = useState<string | null>(null)
+  const [ifaces, setIfaces] = useState<NetworkIface[]>([])
+  const [ipMenuOpen, setIpMenuOpen] = useState(false)
   const [ports, setPorts] = useState<PortStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
@@ -60,6 +110,7 @@ function App() {
   const toastIdRef = useRef(0)
   const prevPortsRef = useRef<PortStatus[]>([])
   const selectedPortRef = useRef<PortStatus | null>(null)
+  const ipMenuRef = useRef<HTMLDivElement>(null)
   const [freshPorts, setFreshPorts] = useState<Set<number>>(new Set())
   const qrWrapperRef = useRef<HTMLDivElement>(null)
 
@@ -75,12 +126,23 @@ function App() {
     }, 4000)
   }, [])
 
-  const fetchIp = useCallback(async () => {
+  const fetchIfaces = useCallback(async () => {
     try {
-      const localIp = await invoke<string>('get_local_ip')
-      setIp(localIp)
+      const list = await invoke<NetworkIface[]>('list_network_interfaces')
+      setIfaces(list)
+      const stored = readStoredIp()
+      const chosen = list.find(i => i.ip === stored)?.ip
+        ?? list.find(i => i.recommended)?.ip
+        ?? list[0]?.ip
+        ?? null
+      if (!chosen) {
+        setError('ERROR: Failed to retrieve local IP')
+        setLoading(false)
+        return null
+      }
+      setIp(chosen)
       setError(null)
-      return localIp
+      return chosen
     } catch {
       setError('ERROR: Failed to retrieve local IP')
       setLoading(false)
@@ -95,12 +157,17 @@ function App() {
       const results = await invoke<PortStatus[]>('scan_ports', { ip: targetIp, customPorts })
       setPorts(results)
 
+      const isFirstScan = prevPortsRef.current.length === 0
       const prevActive = new Set(prevPortsRef.current.filter(p => p.active).map(p => p.port))
       const newFresh = new Set<number>()
       for (const port of results) {
         if (port.active && !prevActive.has(port.port)) {
           newFresh.add(port.port)
-          addToast(`PORT ${port.port} ACTIVE${port.framework ? ` | ${port.framework}` : ''}`)
+          const message = `PORT ${port.port} ACTIVE${port.framework ? ` | ${port.framework}` : ''}`
+          addToast(message)
+          if (!isFirstScan) {
+            notifyNative(message)
+          }
         }
       }
       if (newFresh.size > 0) {
@@ -148,7 +215,7 @@ function App() {
     }
 
     const start = async () => {
-      const localIp = ip ?? await fetchIp()
+      const localIp = ip ?? await fetchIfaces()
       if (cancelled || !localIp) return
       await tick(localIp)
     }
@@ -158,7 +225,7 @@ function App() {
       cancelled = true
       clearTimeout(timeoutId)
     }
-  }, [ip, scanPorts, fetchIp])
+  }, [ip, scanPorts, fetchIfaces])
 
   useEffect(() => {
     try {
@@ -177,6 +244,17 @@ function App() {
   }, [customPath])
 
   useEffect(() => {
+    if (!ipMenuOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (!ipMenuRef.current?.contains(e.target as Node)) {
+        setIpMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [ipMenuOpen])
+
+  useEffect(() => {
     const checkAutostart = async () => {
       try {
         setAutostartEnabled(await isEnabled())
@@ -188,6 +266,12 @@ function App() {
     }
     checkAutostart()
   }, [])
+
+  const selectIp = (next: string) => {
+    persistIp(next)
+    setIp(next)
+    setIpMenuOpen(false)
+  }
 
   const toggleAutostart = async () => {
     try {
@@ -217,12 +301,15 @@ function App() {
 
   const getQrUrl = () => {
     if (!selectedPort) return ''
-    let url = selectedPort.url
-    if (customPath) {
-      const cleanPath = customPath.startsWith('/') ? customPath : '/' + customPath
-      url = url.replace(/\/$/, '') + cleanPath
-    }
-    return url
+    return appendPath(selectedPort.url, customPath)
+  }
+
+  const getOpenUrl = () => {
+    if (!selectedPort) return ''
+    const base = selectedPort.networkAccessible
+      ? selectedPort.url
+      : `http://127.0.0.1:${selectedPort.port}`
+    return appendPath(base, customPath)
   }
 
   const handleCopyUrl = async () => {
@@ -242,8 +329,24 @@ function App() {
     link.click()
   }
 
+  const handleOpenInBrowser = async () => {
+    const url = getOpenUrl()
+    if (!url) return
+    try {
+      await invoke('open_in_browser', { url })
+      addToast('OPENED IN BROWSER')
+    } catch (err) {
+      console.error('Open browser error:', err)
+      addToast('OPEN FAILED')
+    }
+  }
+
+  const selectedIface = ifaces.find(i => i.ip === ip)
   const activeCount = ports.filter(p => p.active).length
   const activePortsList = ports.filter(p => p.active)
+
+  const actionBtnClass = `px-2 py-0.5 border border-text-muted text-[9px] font-bold text-text-primary
+                          hover:border-neon-green hover:text-neon-green transition-colors`
 
   return (
     <div className="h-full bg-obsidian flex flex-col font-mono select-none relative">
@@ -265,7 +368,7 @@ function App() {
               ENVTUNNEL
             </h1>
             <span className="text-[10px] text-text-muted border border-obsidian-border px-1">
-              v1.0.1
+              v1.1.0
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -294,9 +397,36 @@ function App() {
         {/* IP + ACTIVE PORTS */}
         <section className="border border-obsidian-border bg-obsidian-light p-2 shrink-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-bold text-text-secondary tracking-wider">
-              IP: {ip || '---.---.---.---'}
-            </span>
+            <div ref={ipMenuRef} className="relative min-w-0">
+              <button
+                type="button"
+                onClick={() => ifaces.length > 0 && setIpMenuOpen(open => !open)}
+                className="text-[10px] font-bold text-text-secondary tracking-wider hover:text-neon-green transition-colors text-left"
+                title={selectedIface ? selectedIface.name : 'Select network interface'}
+              >
+                IP: {ip || '---.---.---.---'}
+                {ifaces.length > 1 && <span className="ml-1 text-text-muted">▾</span>}
+              </button>
+              {ipMenuOpen && ifaces.length > 0 && (
+                <div className="absolute left-0 top-full z-30 mt-1 min-w-[220px] border border-obsidian-border bg-obsidian shadow-lg">
+                  {ifaces.map(iface => (
+                    <button
+                      key={`${iface.name}-${iface.ip}`}
+                      type="button"
+                      onClick={() => selectIp(iface.ip)}
+                      className={`w-full text-left px-2 py-1.5 text-[10px] border-b border-obsidian-border last:border-b-0
+                        ${iface.ip === ip ? 'text-neon-green' : 'text-text-primary hover:text-neon-green'}`}
+                    >
+                      <div className="font-bold">{iface.ip}</div>
+                      <div className="text-[9px] text-text-muted truncate">
+                        {iface.name}
+                        {iface.recommended ? ' · LAN' : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {lastScan && (
               <span className="text-[10px] text-text-muted ml-auto">
                 {lastScan.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -365,6 +495,9 @@ function App() {
               <span className="text-neon-red text-[10px] font-bold">LOCAL ONLY</span>
               <span className="text-text-muted text-[9px]">RUN DEV SERVER WITH --HOST</span>
               <span className="text-text-muted text-[9px]">TO ACCESS FROM NETWORK</span>
+              <button type="button" onClick={handleOpenInBrowser} className={actionBtnClass}>
+                OPEN IN BROWSER
+              </button>
             </div>
           ) : selectedPort ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2 min-h-0">
@@ -381,19 +514,14 @@ function App() {
                   {getQrUrl()}
                 </div>
                 <div className="flex items-center justify-center gap-2">
-                  <button
-                    onClick={handleCopyUrl}
-                    className="px-2 py-0.5 border border-text-muted text-[9px] font-bold text-text-primary
-                               hover:border-neon-green hover:text-neon-green transition-colors"
-                  >
+                  <button type="button" onClick={handleCopyUrl} className={actionBtnClass}>
                     COPY URL
                   </button>
-                  <button
-                    onClick={handleSaveQr}
-                    className="px-2 py-0.5 border border-text-muted text-[9px] font-bold text-text-primary
-                               hover:border-neon-green hover:text-neon-green transition-colors"
-                  >
+                  <button type="button" onClick={handleSaveQr} className={actionBtnClass}>
                     SAVE QR
+                  </button>
+                  <button type="button" onClick={handleOpenInBrowser} className={actionBtnClass}>
+                    OPEN
                   </button>
                 </div>
               </div>
@@ -469,7 +597,7 @@ function App() {
               )}
             </div>
             <span className="text-[10px] font-bold text-text-primary">
-              START WITH WINDOWS
+              START ON LOGIN
             </span>
             <span className="text-[9px] text-text-muted ml-auto">
               {autostartLoading ? '...' : autostartEnabled ? 'ON' : 'OFF'}

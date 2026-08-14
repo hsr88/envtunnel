@@ -63,37 +63,106 @@ fn lan_priority(v4: std::net::Ipv4Addr) -> Option<u8> {
     }
 }
 
-#[tauri::command]
-fn get_local_ip() -> Result<String, String> {
-    if let Ok(ifaces) = local_ip_address::list_afinet_netifas() {
-        let mut best: Option<(u8, String)> = None;
-        for (name, ip) in ifaces {
-            if is_skipped_iface(&name) {
-                continue;
-            }
-            let std::net::IpAddr::V4(v4) = ip else {
-                continue;
-            };
-            let Some(prio) = lan_priority(v4) else {
-                continue;
-            };
-            match &best {
-                None => best = Some((prio, v4.to_string())),
-                Some((best_prio, _)) if prio < *best_prio => {
-                    best = Some((prio, v4.to_string()));
-                }
-                _ => {}
-            }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NetworkIface {
+    pub name: String,
+    pub ip: String,
+    pub recommended: bool,
+}
+
+fn is_listable_v4(v4: std::net::Ipv4Addr) -> bool {
+    !v4.is_loopback() && !v4.is_unspecified() && !v4.is_link_local() && !v4.is_multicast()
+}
+
+fn recommended_ip() -> Option<String> {
+    let ifaces = local_ip_address::list_afinet_netifas().ok()?;
+    let mut best: Option<(u8, String)> = None;
+    for (name, ip) in ifaces {
+        if is_skipped_iface(&name) {
+            continue;
         }
-        if let Some((_, ip)) = best {
-            return Ok(ip);
+        let std::net::IpAddr::V4(v4) = ip else {
+            continue;
+        };
+        let Some(prio) = lan_priority(v4) else {
+            continue;
+        };
+        match &best {
+            None => best = Some((prio, v4.to_string())),
+            Some((best_prio, _)) if prio < *best_prio => {
+                best = Some((prio, v4.to_string()));
+            }
+            _ => {}
         }
     }
+    best.map(|(_, ip)| ip)
+}
 
+#[tauri::command]
+fn get_local_ip() -> Result<String, String> {
+    if let Some(ip) = recommended_ip() {
+        return Ok(ip);
+    }
     match local_ip_address::local_ip() {
         Ok(ip) => Ok(ip.to_string()),
         Err(e) => Err(format!("Failed to get local IP: {}", e)),
     }
+}
+
+#[tauri::command]
+fn list_network_interfaces() -> Result<Vec<NetworkIface>, String> {
+    let ifaces = local_ip_address::list_afinet_netifas()
+        .map_err(|e| format!("Failed to list network interfaces: {}", e))?;
+    let recommended = recommended_ip();
+
+    let mut out: Vec<NetworkIface> = Vec::new();
+    for (name, ip) in ifaces {
+        let std::net::IpAddr::V4(v4) = ip else {
+            continue;
+        };
+        if !is_listable_v4(v4) {
+            continue;
+        }
+        let ip_str = v4.to_string();
+        if out.iter().any(|i| i.ip == ip_str) {
+            continue;
+        }
+        out.push(NetworkIface {
+            recommended: recommended.as_deref() == Some(ip_str.as_str()),
+            name,
+            ip: ip_str,
+        });
+    }
+
+    out.sort_by(|a, b| {
+        b.recommended
+            .cmp(&a.recommended)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+            .then_with(|| a.ip.cmp(&b.ip))
+    });
+
+    if out.is_empty() {
+        if let Ok(ip) = get_local_ip() {
+            out.push(NetworkIface {
+                name: "default".into(),
+                ip,
+                recommended: true,
+            });
+        }
+    }
+
+    if out.is_empty() {
+        return Err("Failed to get local IP".into());
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+fn open_in_browser(url: String) -> Result<(), String> {
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err("Only http(s) URLs are allowed".into());
+    }
+    open::that(&url).map_err(|e| format!("Failed to open browser: {}", e))
 }
 
 #[cfg(test)]
@@ -121,6 +190,14 @@ mod tests {
         assert!(!is_skipped_iface("Wi-Fi"));
         assert!(!is_skipped_iface("Ethernet"));
         assert!(!is_skipped_iface("en0"));
+    }
+
+    #[test]
+    fn listable_v4_allows_lan_and_cgnat() {
+        assert!(is_listable_v4(Ipv4Addr::new(192, 168, 1, 15)));
+        assert!(is_listable_v4(Ipv4Addr::new(100, 64, 0, 1)));
+        assert!(!is_listable_v4(Ipv4Addr::LOCALHOST));
+        assert!(!is_listable_v4(Ipv4Addr::new(169, 254, 1, 1)));
     }
 }
 
@@ -257,7 +334,13 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
         ))
-        .invoke_handler(tauri::generate_handler![get_local_ip, scan_ports])
+        .plugin(tauri_plugin_notification::init())
+        .invoke_handler(tauri::generate_handler![
+            get_local_ip,
+            list_network_interfaces,
+            scan_ports,
+            open_in_browser
+        ])
         .setup(|app| {
             // Hide window on autostart (starts minimized to tray)
             let args: Vec<String> = std::env::args().collect();
