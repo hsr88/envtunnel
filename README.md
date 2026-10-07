@@ -1,6 +1,6 @@
 # EnvTunnel
 
-> A free, local-first desktop app for **Windows, macOS, and Linux**. It scans for active dev servers and generates instant QR codes - so you can open your localhost on any device in your network with one scan.
+> A free tray app for **Windows, macOS, and Linux** that detects running development servers and generates QR codes for testing them on phones and tablets on the same local network.
 
 <img src="demo.gif" alt="EnvTunnel Demo" width="480">
 
@@ -8,9 +8,17 @@
 
 ## 🔥 What is it?
 
-**EnvTunnel** is a desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. It sits in your system tray, silently monitors popular development ports, and the moment it detects an active server it generates a large QR code using your real local network IP (e.g. `192.168.1.15`).
+**EnvTunnel** is a desktop application built with [Tauri](https://tauri.app/) + React + TypeScript. Start your project in your usual terminal or IDE. EnvTunnel monitors common development ports in the background and generates a QR code with your local network address (e.g. `http://192.168.1.15:5173`) when the server accepts connections on that address.
 
 Windows, macOS, and Linux. No cloud. No accounts. No internet required. 100% offline.
+
+### How it fits your workflow
+
+EnvTunnel focuses on one task: getting an already-running development server onto your phone without typing its IP address. Keep your existing editor, terminal, and project setup; there is no need to import your project or manage it through a separate app launcher.
+
+Despite the name, EnvTunnel currently provides **port discovery and LAN QR codes**, not a network tunnel or reverse proxy. It does not create public internet links, forward traffic, or change your server's listening address or firewall rules. Public tunnel integrations are possible future contributions.
+
+Your computer and phone need to be on the same local network, with connections between them allowed. The server must listen on a network interface, not only `localhost`. EnvTunnel checks the computer's LAN address from that computer; this cannot guarantee that a phone can reach it through a firewall or Wi-Fi client isolation.
 
 ## 🎯 Who is it for?
 
@@ -23,8 +31,9 @@ Windows, macOS, and Linux. No cloud. No accounts. No internet required. 100% off
 
 | Feature | Description |
 |---------|-------------|
-| 🔍 **Auto-scan** | Checks 16+ popular dev ports every 3 seconds |
-| 📱 **QR Codes** | Big, scannable QR generated instantly for any active port |
+| 🔍 **Auto-scan** | Checks 16 default dev ports plus custom ports; waits 3 seconds between completed automatic scans |
+| 📱 **QR Codes** | Scannable QR for active servers that accept connections on the computer's LAN address |
+| 📡 **Local-only detection** | Shows a warning when a server is active but the LAN connection check fails |
 | 🧠 **Framework Detection** | Recognizes Vite, Next.js, Astro, Angular, Nuxt, Gatsby, Django, Flask, Laravel, Rails, Express |
 | 🔔 **Notifications** | In-app toast plus a native OS notification when a new server comes online (works from the tray) |
 | ⚡ **Live Reload Indicator** | Orange pulse shows which port just became active |
@@ -119,15 +128,17 @@ Run your project as usual, e.g.:
 npm run dev          # Vite, Astro, Next.js, etc.
 ```
 
-**Important:** Some frameworks (like Astro) only bind to `localhost` by default. To access from your phone, add `--host`:
+**Important:** Your server must accept connections from the local network. For Vite or Astro, you can pass `--host` through your development script:
 
 ```bash
 npm run dev -- --host
 ```
 
+Other servers may use a different option; use your framework's documented host setting. If EnvTunnel shows **LOCAL ONLY**, check that setting and restart the server as needed. The selected port's status refreshes after the next scan, so you do not need to select it again.
+
 ### 2. EnvTunnel detects it automatically
 
-The app scans every 3 seconds. When your port turns **ON** (green), it appears in the list.
+Active ports appear in the list. Automatic scans wait 3 seconds after the previous scan finishes; you can also click **SCAN** to refresh manually.
 
 ### 3. Click the port
 
@@ -136,6 +147,8 @@ Select the active port. The QR code updates instantly.
 ### 4. Scan with your phone
 
 Open your camera app and scan the QR code. Your phone browser opens the local URL directly.
+
+If the page does not open, confirm that both devices are on the same local network and that the server's port is allowed through your firewall. Guest Wi-Fi or client isolation can prevent devices from reaching each other even when they use the same Wi-Fi name.
 
 ### 5. Pro tips
 
@@ -163,8 +176,8 @@ Open your camera app and scan the QR code. Your phone browser opens the local UR
 EnvTunnel is a **local-first** desktop app. It works completely offline:
 
 1. **Rust Backend** (`src-tauri/src/lib.rs`)
-   - Gets your real local Wi-Fi IP address
-   - Scans ports by attempting TCP connections to `127.0.0.1`
+   - Lists network interfaces and recommends a LAN address; you can choose another interface
+   - Scans ports using TCP connections to IPv4/IPv6 loopback and the selected LAN address
    - Performs HTTP GET requests to detect frameworks from HTML
 
 2. **React Frontend** (`src/App.tsx`)

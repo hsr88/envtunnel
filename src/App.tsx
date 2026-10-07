@@ -109,14 +109,9 @@ function App() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastIdRef = useRef(0)
   const prevPortsRef = useRef<PortStatus[]>([])
-  const selectedPortRef = useRef<PortStatus | null>(null)
   const ipMenuRef = useRef<HTMLDivElement>(null)
   const [freshPorts, setFreshPorts] = useState<Set<number>>(new Set())
   const qrWrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    selectedPortRef.current = selectedPort
-  }, [selectedPort])
 
   const addToast = useCallback((message: string) => {
     const id = ++toastIdRef.current
@@ -183,15 +178,9 @@ function App() {
       prevPortsRef.current = results
 
       const activePorts = results.filter(p => p.active)
-      const currentSelected = selectedPortRef.current
-      if (activePorts.length > 0) {
-        const stillActive = currentSelected
-          ? results.find(p => p.port === currentSelected.port && p.active)
-          : undefined
-        setSelectedPort(stillActive ?? activePorts[0])
-      } else {
-        setSelectedPort(null)
-      }
+      setSelectedPort(previous =>
+        activePorts.find(port => port.port === previous?.port) ?? activePorts[0] ?? null
+      )
 
       setLastScan(new Date())
       setError(null)
